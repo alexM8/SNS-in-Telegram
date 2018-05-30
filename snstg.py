@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import re, sys, json, config, telegram_api
+import re, sys, json, config, telegram_api, traceback
 import flask, flask.cli
 
 app = flask.Flask(__name__)
@@ -9,11 +9,11 @@ uid = tg.get_uid(config.username)
 @app.route(config.http_location, methods=['POST'])
 def receive():
     try:
-        alert = flask.request.get_json()
+        alert = flask.request.get_json(force=True)
         send(uid, prettify(alert))
     except Exception as e:
         send(uid, "Warning: Received an incoming data but failed to parse it\n%s" % e)
-        telegram_api.print_message(e)
+        traceback.print_exc(file=sys.stderr)
     return flask.Response(status=200)
 
 def prettify(data):
@@ -35,14 +35,14 @@ def prettify(data):
             alert += key + " - " + value + "\n"
     except Exception as e:
         alert = "Warning: Parsed incoming data, but failed to prettify it\n%s" % e
-        telegram_api.print_message(e)
+        traceback.print_exc(file=sys.stderr)
     return alert
 
 def send(uid, data):
     try:
         tg.send_message(uid, data)
     except Exception as e:
-        telegram_api.print_message(e)
+        traceback.print_exc(file=sys.stderr)
     return "Success"
 
 if __name__ == '__main__':
